@@ -28,7 +28,7 @@ namespace nvilidar_socket
         int                  m_SocketHandle;        //handle 
         struct sockaddr_in   m_SocketPara;          //para 
     };
-};
+}
 
 #endif
 

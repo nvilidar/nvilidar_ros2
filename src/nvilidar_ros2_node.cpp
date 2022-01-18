@@ -93,54 +93,65 @@ int main(int argc,char *argv[])
     while (ret && rclcpp::ok())
     {
         LidarScan scan;
-        if(laser.LidarSamplingProcess(scan))
+
+        //get lidar data
+        try
         {
-            retry_times = 0;
-
-            auto scan_msg = std::make_shared<sensor_msgs::msg::LaserScan>();
-
-            scan_msg->header.stamp.sec = RCL_NS_TO_S(scan.stamp);
-            scan_msg->header.stamp.nanosec =  scan.stamp - RCL_S_TO_NS(scan_msg->header.stamp.sec);
-            scan_msg->header.frame_id = cfg.frame_id;
-            scan_msg->angle_min = scan.config.min_angle;
-            scan_msg->angle_max = scan.config.max_angle;
-            scan_msg->angle_increment = scan.config.angle_increment;
-            scan_msg->scan_time = scan.config.scan_time;
-            scan_msg->time_increment = scan.config.time_increment;
-            scan_msg->range_min = scan.config.min_range;
-            scan_msg->range_max = scan.config.max_range;
-
-            int size = (scan.config.max_angle - scan.config.min_angle)/ scan.config.angle_increment + 1;
-            scan_msg->ranges.resize(size);
-            scan_msg->intensities.resize(size);
-
-            for(int i=0; i < scan.points.size(); i++) 
+            /* code */
+            if(laser.LidarSamplingProcess(scan))
             {
-                int index = std::ceil((scan.points[i].angle - scan.config.min_angle)/scan.config.angle_increment);
-                if(index >=0 && index < size) 
+                retry_times = 0;
+
+                auto scan_msg = std::make_shared<sensor_msgs::msg::LaserScan>();
+
+                scan_msg->header.stamp.sec = RCL_NS_TO_S(scan.stamp);
+                scan_msg->header.stamp.nanosec =  scan.stamp - RCL_S_TO_NS(scan_msg->header.stamp.sec);
+                scan_msg->header.frame_id = cfg.frame_id;
+                scan_msg->angle_min = scan.config.min_angle;
+                scan_msg->angle_max = scan.config.max_angle;
+                scan_msg->angle_increment = scan.config.angle_increment;
+                scan_msg->scan_time = scan.config.scan_time;
+                scan_msg->time_increment = scan.config.time_increment;
+                scan_msg->range_min = scan.config.min_range;
+                scan_msg->range_max = scan.config.max_range;
+
+                size_t size = (scan.config.max_angle - scan.config.min_angle)/ scan.config.angle_increment + 1;
+                scan_msg->ranges.resize(size);
+                scan_msg->intensities.resize(size);
+
+                for(size_t i=0; i < scan.points.size(); i++) 
                 {
-                    scan_msg->ranges[index] = scan.points[i].range;
-                    scan_msg->intensities[index] = scan.points[i].intensity;
+                    int index = std::ceil((scan.points[i].angle - scan.config.min_angle)/scan.config.angle_increment);
+                    if(index >=0 && index < size) 
+                    {
+                        scan_msg->ranges[index] = scan.points[i].range;
+                        scan_msg->intensities[index] = scan.points[i].intensity;
+                    }
                 }
+
+                laser_pub->publish(*scan_msg);
+            }
+            else 
+            {
+                retry_times++;
             }
 
-            laser_pub->publish(*scan_msg);
+            //重试 超过N次不返回  则报错 
+            if(retry_times > 15)
+            {
+                retry_times = 0;
+
+                RCLCPP_ERROR(node->get_logger(), "Failed to get scan Data!!!");
+                break;
+            }
+
+            rclcpp::spin_some(node);
         }
-        else 
+        catch(const rclcpp::exceptions::RCLError &e)
         {
-            retry_times++;
+            //RCLCPP_ERROR(node->get_logger(),"unexpectedly failed with %s",e.what());
         }
-
-        //重试 超过N次不返回  则报错 
-        if(retry_times > 5)
-        {
-            retry_times = 0;
-
-            RCLCPP_ERROR(node->get_logger(), "Failed to get scan Data!!!");
-            break;
-        }
-
-        rclcpp::spin_some(node);
+        
         loop_rate.sleep();
     }
 
