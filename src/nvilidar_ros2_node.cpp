@@ -16,7 +16,7 @@
 #include "nvilidar_process.h"
 
 //版本号 
-#define ROS2Verision "1.0.0"
+#define ROS2Verision "1.0.1"
 
 //参数相关 宏定义 
 #define READ_PARAM(TYPE, NAME, VAR, VALUE) VAR = VALUE; \

@@ -41,7 +41,8 @@ add_executable(nvilidar_ros2_node
     sdk/src/nvilidar/nvilidar_driver_net_config.cpp
     sdk/src/nvilidar/nvilidar_driver_serialport.cpp
     sdk/src/nvilidar/nvilidar_driver_udp.cpp
-    sdk/src/nvilidar/nvilidar_process.cpp)
+    sdk/src/nvilidar/nvilidar_process.cpp
+    sdk/src/nvilidar/nvilidar_filter.cpp) 
 #---------------------------------------------------------------------------------------
 # link libraries
 #--------------------------------------------------------------------------------------
@@ -67,7 +68,8 @@ add_executable(nvilidar_ros2_client
     sdk/src/nvilidar/nvilidar_driver_net_config.cpp
     sdk/src/nvilidar/nvilidar_driver_serialport.cpp
     sdk/src/nvilidar/nvilidar_driver_udp.cpp
-    sdk/src/nvilidar/nvilidar_process.cpp)
+    sdk/src/nvilidar/nvilidar_process.cpp
+    sdk/src/nvilidar/nvilidar_filter.cpp)
 #---------------------------------------------------------------------------------------
 # link libraries
 #--------------------------------------------------------------------------------------
