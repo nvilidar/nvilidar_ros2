@@ -7,7 +7,7 @@ nvilidar_ros2_node:
     config_udp_port: 8200
     frame_id: "laser_frame"
     resolution_fixed: true
-    auto_reconnect: false
+    auto_reconnect: true
     reversion: false
     inverted: false
     angle_min: -180.0

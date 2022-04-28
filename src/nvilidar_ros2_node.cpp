@@ -16,7 +16,7 @@
 #include "nvilidar_process.h"
 
 //版本号 
-#define ROS2Verision "1.0.1"
+#define ROS2Verision "1.0.2"
 
 //参数相关 宏定义 
 #define READ_PARAM(TYPE, NAME, VAR, VALUE) VAR = VALUE; \
@@ -59,10 +59,11 @@ int main(int argc,char *argv[])
     READ_PARAM(std::string, "ignore_array_string", (cfg.ignore_array_string), "");
 
     //更新数据 初始化 启用网络或者串口
-    #if 0
-        nvilidar::LidarProcess laser(USE_SOCKET,cfg.ip_addr, cfg.lidar_udp_port);
+    #if 1
+    	 nvilidar::LidarProcess laser(USE_SERIALPORT,cfg.serialport_name,cfg.serialport_baud);
+ 
     #else 
-        nvilidar::LidarProcess laser(USE_SERIALPORT,cfg.serialport_name,cfg.serialport_baud);
+        nvilidar::LidarProcess laser(USE_SOCKET,cfg.ip_addr, cfg.lidar_udp_port);
     #endif
 
     //根据配置 重新加载参数 
@@ -87,7 +88,6 @@ int main(int argc,char *argv[])
     auto laser_pub = node->create_publisher<sensor_msgs::msg::LaserScan>("scan", rclcpp::SensorDataQoS());
 
     rclcpp::WallRate loop_rate(50);
-    uint32_t retry_times = 0;
 
     //循环读取雷达数据 
     while (ret && rclcpp::ok())
@@ -100,48 +100,45 @@ int main(int argc,char *argv[])
             /* code */
             if(laser.LidarSamplingProcess(scan))
             {
-                retry_times = 0;
+            	if(scan.points.size() > 0)
+            	{
+					auto scan_msg = std::make_shared<sensor_msgs::msg::LaserScan>();
 
-                auto scan_msg = std::make_shared<sensor_msgs::msg::LaserScan>();
+					scan_msg->header.stamp.sec = RCL_NS_TO_S(scan.stamp);
+					scan_msg->header.stamp.nanosec =  scan.stamp - RCL_S_TO_NS(scan_msg->header.stamp.sec);
+					scan_msg->header.frame_id = cfg.frame_id;
+					scan_msg->angle_min = scan.config.min_angle;
+					scan_msg->angle_max = scan.config.max_angle;
+					scan_msg->angle_increment = scan.config.angle_increment;
+					scan_msg->scan_time = scan.config.scan_time;
+					scan_msg->time_increment = scan.config.time_increment;
+					scan_msg->range_min = scan.config.min_range;
+					scan_msg->range_max = scan.config.max_range;
 
-                scan_msg->header.stamp.sec = RCL_NS_TO_S(scan.stamp);
-                scan_msg->header.stamp.nanosec =  scan.stamp - RCL_S_TO_NS(scan_msg->header.stamp.sec);
-                scan_msg->header.frame_id = cfg.frame_id;
-                scan_msg->angle_min = scan.config.min_angle;
-                scan_msg->angle_max = scan.config.max_angle;
-                scan_msg->angle_increment = scan.config.angle_increment;
-                scan_msg->scan_time = scan.config.scan_time;
-                scan_msg->time_increment = scan.config.time_increment;
-                scan_msg->range_min = scan.config.min_range;
-                scan_msg->range_max = scan.config.max_range;
+					size_t size = (scan.config.max_angle - scan.config.min_angle)/ scan.config.angle_increment + 1;
+					scan_msg->ranges.resize(size);
+					scan_msg->intensities.resize(size);
 
-                size_t size = (scan.config.max_angle - scan.config.min_angle)/ scan.config.angle_increment + 1;
-                scan_msg->ranges.resize(size);
-                scan_msg->intensities.resize(size);
+					for(size_t i=0; i < scan.points.size(); i++) 
+					{
+						int index = std::ceil((scan.points[i].angle - scan.config.min_angle)/scan.config.angle_increment);
+						if(index >=0 && index < size) 
+						{
+							scan_msg->ranges[index] = scan.points[i].range;
+							scan_msg->intensities[index] = scan.points[i].intensity;
+						}
+					}
 
-                for(size_t i=0; i < scan.points.size(); i++) 
-                {
-                    int index = std::ceil((scan.points[i].angle - scan.config.min_angle)/scan.config.angle_increment);
-                    if(index >=0 && index < size) 
-                    {
-                        scan_msg->ranges[index] = scan.points[i].range;
-                        scan_msg->intensities[index] = scan.points[i].intensity;
-                    }
+					laser_pub->publish(*scan_msg);
                 }
-
-                laser_pub->publish(*scan_msg);
+                else 
+                {
+                	RCLCPP_WARN(node->get_logger(), "Lidar Data Invalid!");
+                }
             }
             else 
             {
-                retry_times++;
-            }
-
-            //重试 超过N次不返回  则报错 
-            if(retry_times > 15)
-            {
-                retry_times = 0;
-
-                RCLCPP_ERROR(node->get_logger(), "Failed to get scan Data!!!");
+                RCLCPP_ERROR(node->get_logger(), "Failed to get Lidar Data!");
                 break;
             }
 
