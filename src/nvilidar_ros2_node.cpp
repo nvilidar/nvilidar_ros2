@@ -16,7 +16,7 @@
 #include "nvilidar_process.h"
 
 //版本号 
-#define ROS2Verision "1.0.2"
+#define ROS2Verision "1.0.3"
 
 //参数相关 宏定义 
 #define READ_PARAM(TYPE, NAME, VAR, VALUE) VAR = VALUE; \
@@ -55,11 +55,13 @@ int main(int argc,char *argv[])
     READ_PARAM(bool, "sensitive", (cfg.sensitive), false);
     READ_PARAM(int, "tailing_level", (cfg.tailing_level), 6);
     READ_PARAM(double, "angle_offset", (cfg.angle_offset), 0.0);
+    READ_PARAM(bool, "apd_change_flag", (cfg.apd_change_flag), false);
+    READ_PARAM(int,  "apd_value", (cfg.apd_value), 500);
     READ_PARAM(bool, "single_channel", (cfg.single_channel), false);
     READ_PARAM(std::string, "ignore_array_string", (cfg.ignore_array_string), "");
 
     //更新数据 初始化 启用网络或者串口
-    #if 1
+    #if 0
     	 nvilidar::LidarProcess laser(USE_SERIALPORT,cfg.serialport_name,cfg.serialport_baud);
  
     #else 

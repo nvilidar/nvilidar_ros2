@@ -18,5 +18,8 @@ nvilidar_ros2_node:
     sampling_rate: 10
     sensitive: false
     tailing_level: 6
+    angle_offset: 0.0
+    apd_change_flag: false
+    apd_value: 600
     single_channel: false
     ignore_array_string: ""
