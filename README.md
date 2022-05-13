@@ -13,7 +13,7 @@ nvilidar_ros2_driver is a new ros package, which is designed to gradually become
 
 1. Clone nvilidar_ros2_driver package for github : 
 
-   `git clone https://github.com/nvilidar/nvilidar_ros2.git`
+   `git clone https://github.com/nvistar/nvistar-ros2`
 
    or 
 
