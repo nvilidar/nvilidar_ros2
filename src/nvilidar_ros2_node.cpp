@@ -16,7 +16,7 @@
 #include "nvilidar_process.h"
 
 //版本号 
-#define ROS2Verision "1.0.3"
+#define ROS2Verision "1.0.9"
 
 //参数相关 宏定义 
 #define READ_PARAM(TYPE, NAME, VAR, VALUE) VAR = VALUE; \
@@ -27,17 +27,24 @@
 int main(int argc,char *argv[])
 {
     rclcpp::init(argc,argv);    //初始化 
+    printf(" _   ___      _______ _      _____ _____          _____ \n");
+    printf("| \\ | \\ \\    / /_   _| |    |_   _|  __ \\   /\\   |  __ \\\n");
+    printf("|  \\| |\\ \\  / /  | | | |      | | | |  | | /  \\  | |__) |\n");
+    printf("| . ` | \\ \\/ /   | | | |      | | | |  | |/ /\\ \\ |  _  / \n");
+    printf("| |\\  |  \\  /   _| |_| |____ _| |_| |__| / ____ \\| | \\ \\\n");
+    printf("|_| \\_|   \\/   |_____|______|_____|_____/_/    \\_\\_|  \\ \\\n");
+    printf("\n");
+    fflush(stdout);
 
     auto node = rclcpp::Node::make_shared("nvilidar_ros2_node");
 
-    RCLCPP_INFO(node->get_logger(), "[NVILIDAR INFO] Current ROS2 Driver Version: %s\n", ((std::string)ROS2Verision).c_str());  //版本号输出 
+    RCLCPP_INFO(node->get_logger(), "[NVILIDAR INFO] Current ROS2 Driver Version: %s\n", ((std::string)ROS2Verision).c_str());  //version 
 
-    //para 
     Nvilidar_UserConfigTypeDef cfg;
 
-    //获取参数 
+    //sync para form rviz 
     READ_PARAM(std::string, "serialport_name", (cfg.serialport_name), "dev/nvilidar");
-    READ_PARAM(int, "serialport_baud", (cfg.serialport_baud), 921600);
+    READ_PARAM(int, "serialport_baud", (cfg.serialport_baud), 512000);
     READ_PARAM(std::string, "ip_addr", (cfg.ip_addr), "192.168.1.200");
     READ_PARAM(int, "lidar_udp_port", (cfg.lidar_udp_port), 8100);
     READ_PARAM(int, "config_tcp_port", (cfg.config_tcp_port), 8200);
@@ -54,28 +61,31 @@ int main(int argc,char *argv[])
     READ_PARAM(int, "sampling_rate", (cfg.sampling_rate), 10);
     READ_PARAM(bool, "sensitive", (cfg.sensitive), false);
     READ_PARAM(int, "tailing_level", (cfg.tailing_level), 6);
+	READ_PARAM(bool, "angle_offset_change_flag", (cfg.angle_offset_change_flag), false);
     READ_PARAM(double, "angle_offset", (cfg.angle_offset), 0.0);
     READ_PARAM(bool, "apd_change_flag", (cfg.apd_change_flag), false);
     READ_PARAM(int,  "apd_value", (cfg.apd_value), 500);
-    READ_PARAM(bool, "single_channel", (cfg.single_channel), false);
     READ_PARAM(std::string, "ignore_array_string", (cfg.ignore_array_string), "");
+	//filter 
+	READ_PARAM(bool, "filter_jump_enable", (cfg.filter_jump_enable), true);
+	READ_PARAM(int, "filter_jump_value_min", (cfg.filter_jump_value_min), 3);
+	READ_PARAM(int, "filter_jump_value_max", (cfg.filter_jump_value_max), 50);
 
-    //更新数据 初始化 启用网络或者串口
-    #if 0
+    //choice use serialport or socket 
+    #if 1
     	 nvilidar::LidarProcess laser(USE_SERIALPORT,cfg.serialport_name,cfg.serialport_baud);
- 
     #else 
         nvilidar::LidarProcess laser(USE_SOCKET,cfg.ip_addr, cfg.lidar_udp_port);
     #endif
 
-    //根据配置 重新加载参数 
+    //reload lidar parameter 
     laser.LidarReloadPara(cfg); 
 
-    //初始化 
+    //lidar init
     bool ret = laser.LidarInitialialize();
     if (ret) 
     {
-        //启动雷达 
+        //turn on the lidar 
         ret = laser.LidarTurnOn();
         if (!ret) 
         {
@@ -91,7 +101,7 @@ int main(int argc,char *argv[])
 
     rclcpp::WallRate loop_rate(50);
 
-    //循环读取雷达数据 
+    //read lidar data 
     while (ret && rclcpp::ok())
     {
         LidarScan scan;
@@ -105,6 +115,7 @@ int main(int argc,char *argv[])
             	if(scan.points.size() > 0)
             	{
 					auto scan_msg = std::make_shared<sensor_msgs::msg::LaserScan>();
+                    int avaliable_count = 0;
 
 					scan_msg->header.stamp.sec = RCL_NS_TO_S(scan.stamp);
 					scan_msg->header.stamp.nanosec =  scan.stamp - RCL_S_TO_NS(scan_msg->header.stamp.sec);
@@ -118,19 +129,29 @@ int main(int argc,char *argv[])
 					scan_msg->range_max = scan.config.max_range;
 
 					size_t size = (scan.config.max_angle - scan.config.min_angle)/ scan.config.angle_increment + 1;
+					scan_msg->ranges.clear();
 					scan_msg->ranges.resize(size);
+					scan_msg->intensities.clear();
 					scan_msg->intensities.resize(size);
-
-					for(size_t i=0; i < scan.points.size(); i++) 
-					{
+                	avaliable_count = 0;
+					for(size_t i=0; i < scan.points.size(); i++) {
 						int index = std::ceil((scan.points[i].angle - scan.config.min_angle)/scan.config.angle_increment);
 						if(index >=0 && index < size) 
 						{
+                        	avaliable_count++;
+
 							scan_msg->ranges[index] = scan.points[i].range;
 							scan_msg->intensities[index] = scan.points[i].intensity;
 						}
 					}
-
+	                if(cfg.resolution_fixed){   //fix counts  
+	                    if(size > avaliable_count){
+	                        for(int j = avaliable_count; j<size; j++){
+	                            scan_msg->ranges[j] = 0;
+	                            scan_msg->intensities[j] = 0;
+	                        }
+	                    }
+	                }
 					laser_pub->publish(*scan_msg);
                 }
                 else 
