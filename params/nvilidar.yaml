@@ -12,7 +12,7 @@ nvilidar_ros2_node:
     inverted: false
     angle_min: -180.0
     angle_max: 180.0
-    range_min: 0.0
+    range_min: 0.001
     range_max: 64.0
     aim_speed: 10.0
     sampling_rate: 10

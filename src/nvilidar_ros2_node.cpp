@@ -56,7 +56,7 @@ int main(int argc,char *argv[])
     READ_PARAM(double, "angle_max", (cfg.angle_max), 180.0);
     READ_PARAM(double, "angle_min", (cfg.angle_min), -180.0);
     READ_PARAM(double, "range_max", (cfg.range_max), 64.0);
-    READ_PARAM(double, "range_min", (cfg.range_min), 0.0);
+    READ_PARAM(double, "range_min", (cfg.range_min), 0.001);
     READ_PARAM(double, "aim_speed", (cfg.aim_speed), 10.0);
     READ_PARAM(int, "sampling_rate", (cfg.sampling_rate), 10);
     READ_PARAM(bool, "sensitive", (cfg.sensitive), false);
