@@ -26,3 +26,5 @@ nvilidar_ros2_node:
     filter_jump_enable: true
     filter_jump_value_min: 3
     filter_jump_value_max: 50
+    quality_threshold_change_flag: false
+    quality_threshold: 800

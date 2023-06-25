@@ -24,11 +24,11 @@ def generate_launch_description():
 
     driver_node = LifecycleNode(package='nvilidar_ros2',
                                 node_executable='nvilidar_ros2_node',
-                                node_name='nvilidar_ros2_node',
+                                name='nvilidar_ros2_node',
                                 output='screen',
                                 emulate_tty=True,
                                 parameters=[parameter_file],
-                                node_namespace='/',
+                                namespace='/',
                                 )
     tf2_node = Node(package='tf2_ros',
                     node_executable='static_transform_publisher',

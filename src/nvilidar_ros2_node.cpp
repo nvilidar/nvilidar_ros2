@@ -16,7 +16,7 @@
 #include "nvilidar_process.h"
 
 //版本号 
-#define ROS2Verision "1.1.0"
+#define ROS2Verision "1.1.2"
 
 //参数相关 宏定义 
 #define READ_PARAM(TYPE, NAME, VAR, VALUE) VAR = VALUE; \
@@ -70,6 +70,9 @@ int main(int argc,char *argv[])
 	READ_PARAM(bool, "filter_jump_enable", (cfg.filter_jump_enable), true);
 	READ_PARAM(int, "filter_jump_value_min", (cfg.filter_jump_value_min), 3);
 	READ_PARAM(int, "filter_jump_value_max", (cfg.filter_jump_value_max), 50);
+    //quality filter
+    READ_PARAM(bool, "quality_threshold_change_flag", (cfg.quality_threshold_change_flag), false);
+	READ_PARAM(int, "quality_threshold", (cfg.quality_threshold), 800);
 
     //choice use serialport or socket 
     #if 1
